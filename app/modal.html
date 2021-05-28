@@ -1,0 +1,331 @@
+<html>
+
+<head>
+  <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+  <link rel="stylesheet" type="text/css" href="style.css">
+  <link rel="stylesheet" type="text/css" href="https://static.freshdev.io/fdk/2.0/assets/freshdesk.css">
+
+  <script src="https://static.freshdev.io/fdk/2.0/assets/fresh_client.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.5.22/dist/vue.js"></script>
+  <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment.js"></script>
+  <style>
+    .ticket-details {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .title-container {
+      padding: 0 15px;
+      display: flex;
+      position: absolute;
+      right: 0;
+    }
+
+    .ticket-status {
+      padding: 0 15px;
+      display: flex;
+    }
+
+    .col {
+      margin-left: 15px;
+      width: 215px;
+    }
+
+    .row {
+      display: flex;
+    }
+
+    .status-label {
+      width: 70px;
+    }
+
+    .status-value,
+    .conv-user {
+      font-weight: bold;
+    }
+
+    .edit-btn {
+      height: 30px;
+      margin-left: auto;
+    }
+
+    .section {
+      margin: 5px 0;
+    }
+
+    .section-header {
+      font-weight: bold;
+      /* color: #3e3e3e; */
+      padding: 5px 0;
+      border-bottom: 1px solid #ebeef5;
+    }
+
+    .description, .attachment-container {
+      padding: 0 10px;
+    }
+
+    .converstions {
+      padding: 5px 10px;
+      border-bottom: 1px dashed #c0c0c0;
+    }
+
+    .attachment-container {
+      /* border: 1px solid #c7c0c0; */
+      height: 50px;
+      /* align-self: stretch; */
+    }
+
+    .conv-header {
+      display: flex;
+    }
+
+    .conv-header p {
+      display: inline;
+    }
+
+    .conv-msg {
+      padding: 10px 10px 10px 25px;
+    }
+
+    .private-note {
+      /* color: #635f5f; */
+    }
+
+    .icon {
+      margin-top: 3px;
+    }
+
+    .freshdesk_quote {
+      display: none;
+    }
+
+  </style>
+</head>
+
+<body>
+  <div id="modalId">
+    <div v-if="ticketData">
+      <div class="ticket-details">
+        <div class="title-container">
+          <button class="btn btn-primary edit-btn" @click="handleEdit">Edit</button>
+        </div>
+        <div class="section ticket-status">
+          <div class="col">
+            <div class="row">
+              <p class="status-label">Type:</p>
+              <p class="status-value">{{ticketData.type || 'N/A'}}</p>
+            </div>
+            <div class="row">
+              <p class="status-label">Priority:</p>
+              <p class="status-value">{{showPriority()}}</p>
+            </div>
+            <div class="row">
+              <p class="status-label">Due:</p>
+              <p class="status-value">{{ticketData.due_by | date}}</p>
+            </div>
+          </div>
+          <div class="col">
+            <div class="row">
+              <p class="status-label">Status:</p>
+              <p class="status-value">{{status || 'N/A'}}</p>
+            </div>
+            <div class="row">
+              <p class="status-label">Group:</p>
+              <p class="status-value">{{ticketData.group_id || 'N/A'}}</p>
+            </div>
+            <div class="row">
+              <p class="status-label">Assignee:</p>
+              <p class="status-value">{{agentName}}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="container-fluid">
+        <div class="section">
+          <p class="section-header">Description</p>
+          <p class="description" v-html="ticketData.description"></p>
+        </div>
+        <div class="section">
+          <p class="section-header">Attachments</p>
+          <div class="attachment-container">
+            <span v-if="ticketData.attachments.length > 0" v-for="item in ticketData.attachments">
+              <a :href="item.attachment_url">{{item.name}}</a>
+            </span>
+            <span v-if="ticketData.attachments.length==0">N/A</span>
+          </div>
+        </div>
+        <div class="section">
+          <p class="section-header">Conversations</p>
+          <div class="converstions" v-if="ticketData.conversations.length > 0" v-for="conversation in ticketData.conversations">
+            <div class="conv-header">
+              <div><i class="el-icon-view private-note icon"></i></div>
+              <div style="padding: 0 10px;">
+                <p class="conv-user" v-if="!conversation.incoming">{{getAgentNameFromList(conversation.user_id)}}</p>
+                <p class="conv-user" v-else>{{conversation.from_email}}</p>
+                <p v-if="conversation.private && conversation.source == 2">Added a private note<span
+                  v-if="conversation.incoming">, Notified to: <b>{{conversation.to_emails.join(",")}}</b></span></p>
+                <p v-if="!conversation.private && conversation.source == 2">Added a Public note</p>
+                <p v-if="conversation.source == 8">forwarded to <b>{{conversation.to_emails.join(",")}}</b></p>
+                <p v-if="conversation.source == 0">replied to <b>{{conversation.to_emails.join(",")}}</b></p>
+                <br/><p><b>On</b> {{conversation.updated_at | date }}</p>
+              </div>
+            </div>
+            <div class="conv-msg">
+              <p v-html="conversation.body"></p>
+            </div>
+          </div>
+          <div style="padding: 5px 10px;" v-if="ticketData.conversations.length == 0">
+            N/A
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      new Vue({
+        el: '#modalId',
+        data: {
+          fdObjectModal: null,
+          ticketId: 0,
+          ticketData: null,
+          loading: null,
+          status: '',
+          agentName: '',
+          agentsList: [],
+        },
+
+        created() {
+          this.initFD();
+        },
+
+        filters: {
+          date: function (str) {
+            if (!str) {
+              return 'N/A';
+            }
+            return moment(str).format('lll');
+          },
+        },
+
+        methods: {
+          initFD() {
+            return app.initialized().then(client => {
+              this.fdObjectModal = client;
+              this.getParamsFrmParent();
+            }).catch(error => {
+              console.log(error);
+              this.showNotify(error, 'danger');
+            });
+          },
+
+          showPriority() {
+            let priority = 'Low';
+            switch (this.ticketData.priority) {
+              case 1:
+                priority = 'Low';
+                break;
+              case 2:
+                priority = 'Medium';
+                break;
+              case 3:
+                priority = 'High';
+                break;
+              case 4:
+                priority = 'Urgent';
+                break;
+              default:
+                break;
+            }
+            return priority;
+          },
+
+          showLoading() {
+            this.loading = this.$loading({
+              lock: true,
+              background: 'rgba(0, 0, 0, 0.50)',
+              target: this.$refs.ticketContainer
+            });
+          },
+
+          closeLoading() {
+            if (this.loading !== null) {
+              this.loading.close();
+            }
+          },
+
+          getTicketDetails() {
+            let url = '<%= iparam.$domain.url %>/api/v2/tickets/' + this.ticketId +
+              '?include=conversations';
+            var headers = {
+              "Authorization": "Basic <%= encode(iparam.api_key) %>"
+            };
+            var options = {
+              headers: headers
+            };
+            this.fdObjectModal.request.get(url, options)
+              .then(data => {
+                if (data.status == 200) {
+                  this.ticketData = JSON.parse(data.response);
+                  this.closeLoading();
+                } else {
+                  this.closeLoading();
+                  throw data;
+                }
+              }).catch(error => {
+                this.closeLoading();
+                console.log(error);
+                this.showNotify(error, 'danger');
+              });
+          },
+
+          handleEdit() {
+            this.fdObjectModal.instance.send({
+              message: {
+                fromModel: true,
+                redirect: this.ticketId
+              }
+            });
+            this.fdObjectModal.instance.close();
+          },
+
+          getParamsFrmParent() {
+            this.fdObjectModal.instance.context().then(context => {
+              if (context.data) {
+                this.ticketId = context.data.ticketId || 0;
+                this.agentName = context.data.agentName;
+                this.status = context.data.status;
+                this.agentsList = context.data.agentsList;
+                this.getTicketDetails();
+              } else {
+                this.fdObjectModal.instance.close();
+              }
+            });
+          },
+
+          showNotify(message, type) {
+            this.fdObjectModal.interface.trigger("showNotify", {
+              type: type,
+              title: message.status || '',
+              message: message.message
+            });
+          },
+
+          getAgentNameFromList(agentId) {
+            let agentName = this.agentsList.filter(elm => elm.id == agentId);
+            try {
+              return agentName[0].contact.name;
+            } catch (e) {
+              return 'Unknown User';
+            }
+          },
+        }
+      })
+    })();
+
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,21 @@
+{
+  "domain": {
+    "display_name": "Domain",
+    "description": "Please enter your domain",
+    "type": "domain",
+    "required": true,
+    "type_attributes": {
+      "product": "current"
+    }
+  },
+  "api_key": {
+    "display_name": "Api Key",
+    "description": "Please enter your Api Key",
+    "type": "api_key",
+    "required": true,
+    "type_attributes": {
+      "product": "current"
+    },
+    "secure": true
+  }
+}
