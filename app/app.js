@@ -202,7 +202,7 @@
       },
 
       getAllTickets() {
-        this.searchInput = "";
+        this.searchInput = '';
         let pageOptions = this.hasFilter ? `&page=${this.currentPage}` : `&per_page=${this.totalTicketsPerPage}&page=${this.currentPage}`;
         let url = '<%= iparam.$domain.url %>/api/v2/' + this.path + (this.defaultFilter ? '?' + this.defaultFilter + pageOptions : '');
         var headers = {

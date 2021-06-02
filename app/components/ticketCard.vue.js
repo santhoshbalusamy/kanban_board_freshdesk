@@ -44,7 +44,7 @@ var TicketCard = Vue.component('TicketCard', {
         <div class="card-description">{{description}} </div>
         <div class="status-container">
           <span class="due-by">Due: <b>{{ dueBy | date}}</b> </span>
-          <div class="author-container">
+          <div class="author-container" v-if="agentNameFormatted">
           Assigned To
            <div class="author" :title="agentName">
               {{agentNameFormatted}}
@@ -63,6 +63,7 @@ var TicketCard = Vue.component('TicketCard', {
     ticketId: Number,
     priority: Number,
     dueBy: String,
+    frDueBy: String,
     sourceProp: Number,
     loggedInUser: Number,
     currentStatusNumber: String,
@@ -108,22 +109,31 @@ var TicketCard = Vue.component('TicketCard', {
 
   computed: {
     dueByFormatted() {
-      let dueby = moment(this.dueBy);
-      let diff = dueby.diff(moment(), 'hours');
-      if (diff > 0) {
-        return {
-          text: 'Response due',
-          color: "#0062E8",
-          background: "#EAF3FF",
-          border: "1pt solid #5EA2FF"
-        };
-      } else if (diff <= 0) {
-        return {
-          text: 'Overdue',
-          color: "#c82124",
-          background: "#ffecf0",
-          border: "1pt solid #ffd0d6"
-        };
+      if (Number(this.status) !== 4 && Number(this.status) !== 5) {
+        let dueby = moment(this.dueBy);
+        let diff = dueby.diff(moment(), 'hours');
+
+        // @todo: will disable this for now due to lack of API support
+        // let frDueBy = moment(this.frDueBy);
+        // let diffFr = frDueBy.diff(moment(), 'hours');
+        // if (diff > 0 && diffFr > 0) {
+        //   return {
+        //     text: 'First Response due',
+        //     color: "#0062E8",
+        //     background: "#EAF3FF",
+        //     border: "1pt solid #5EA2FF"
+        //   };
+        // } else
+        if (diff <= 0) {
+          return {
+            text: 'Overdue',
+            color: "#c82124",
+            background: "#ffecf0",
+            border: "1pt solid #ffd0d6"
+          };
+        }
+      } else {
+        return null
       }
     },
 

@@ -15,6 +15,10 @@
       flex-direction: column;
     }
 
+    .ticket-container {
+      height: 100vh;
+    }
+
     .title-container {
       padding: 0 15px;
       display: flex;
@@ -61,7 +65,8 @@
       border-bottom: 1px solid #ebeef5;
     }
 
-    .description, .attachment-container {
+    .description,
+    .attachment-container {
       padding: 0 10px;
     }
 
@@ -105,78 +110,81 @@
 
 <body>
   <div id="modalId">
-    <div v-if="ticketData">
-      <div class="ticket-details">
-        <div class="title-container">
-          <button class="btn btn-primary edit-btn" @click="handleEdit">Edit</button>
-        </div>
-        <div class="section ticket-status">
-          <div class="col">
-            <div class="row">
-              <p class="status-label">Type:</p>
-              <p class="status-value">{{ticketData.type || 'N/A'}}</p>
-            </div>
-            <div class="row">
-              <p class="status-label">Priority:</p>
-              <p class="status-value">{{showPriority()}}</p>
-            </div>
-            <div class="row">
-              <p class="status-label">Due:</p>
-              <p class="status-value">{{ticketData.due_by | date}}</p>
-            </div>
+    <div class="ticket-container" ref="ticketContainer">
+      <div v-if="ticketData">
+        <div class="ticket-details">
+          <div class="title-container">
+            <button class="btn btn-primary edit-btn" @click="handleEdit">Edit</button>
           </div>
-          <div class="col">
-            <div class="row">
-              <p class="status-label">Status:</p>
-              <p class="status-value">{{status || 'N/A'}}</p>
-            </div>
-            <div class="row">
-              <p class="status-label">Group:</p>
-              <p class="status-value">{{ticketData.group_id || 'N/A'}}</p>
-            </div>
-            <div class="row">
-              <p class="status-label">Assignee:</p>
-              <p class="status-value">{{agentName}}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="container-fluid">
-        <div class="section">
-          <p class="section-header">Description</p>
-          <p class="description" v-html="ticketData.description"></p>
-        </div>
-        <div class="section">
-          <p class="section-header">Attachments</p>
-          <div class="attachment-container">
-            <span v-if="ticketData.attachments.length > 0" v-for="item in ticketData.attachments">
-              <a :href="item.attachment_url">{{item.name}}</a>
-            </span>
-            <span v-if="ticketData.attachments.length==0">N/A</span>
-          </div>
-        </div>
-        <div class="section">
-          <p class="section-header">Conversations</p>
-          <div class="converstions" v-if="ticketData.conversations.length > 0" v-for="conversation in ticketData.conversations">
-            <div class="conv-header">
-              <div><i class="el-icon-view private-note icon"></i></div>
-              <div style="padding: 0 10px;">
-                <p class="conv-user" v-if="!conversation.incoming">{{getAgentNameFromList(conversation.user_id)}}</p>
-                <p class="conv-user" v-else>{{conversation.from_email}}</p>
-                <p v-if="conversation.private && conversation.source == 2">Added a private note<span
-                  v-if="conversation.incoming">, Notified to: <b>{{conversation.to_emails.join(",")}}</b></span></p>
-                <p v-if="!conversation.private && conversation.source == 2">Added a Public note</p>
-                <p v-if="conversation.source == 8">forwarded to <b>{{conversation.to_emails.join(",")}}</b></p>
-                <p v-if="conversation.source == 0">replied to <b>{{conversation.to_emails.join(",")}}</b></p>
-                <br/><p><b>On</b> {{conversation.updated_at | date }}</p>
+          <div class="section ticket-status">
+            <div class="col">
+              <div class="row">
+                <p class="status-label">Type:</p>
+                <p class="status-value">{{ticketData.type || 'N/A'}}</p>
+              </div>
+              <div class="row">
+                <p class="status-label">Priority:</p>
+                <p class="status-value">{{showPriority()}}</p>
+              </div>
+              <div class="row">
+                <p class="status-label">Due:</p>
+                <p class="status-value">{{ticketData.due_by | date}}</p>
               </div>
             </div>
-            <div class="conv-msg">
-              <p v-html="conversation.body"></p>
+            <div class="col">
+              <div class="row">
+                <p class="status-label">Status:</p>
+                <p class="status-value">{{status || 'N/A'}}</p>
+              </div>
+              <div class="row">
+                <p class="status-label">Group:</p>
+                <p class="status-value">{{ticketData.group_id || 'N/A'}}</p>
+              </div>
+              <div class="row">
+                <p class="status-label">Assignee:</p>
+                <p class="status-value">{{agentName}}</p>
+              </div>
             </div>
           </div>
-          <div style="padding: 5px 10px;" v-if="ticketData.conversations.length == 0">
-            N/A
+        </div>
+        <div class="container-fluid">
+          <div class="section">
+            <p class="section-header">Description</p>
+            <p class="description" v-html="ticketData.description"></p>
+          </div>
+          <div class="section">
+            <p class="section-header">Attachments</p>
+            <div class="attachment-container">
+              <span v-if="ticketData.attachments.length > 0" v-for="item in ticketData.attachments">
+                <a :href="item.attachment_url">{{item.name}}</a>
+              </span>
+              <span v-if="ticketData.attachments.length==0">N/A</span>
+            </div>
+          </div>
+          <div class="section">
+            <p class="section-header">Conversations</p>
+            <div class="converstions" v-if="ticketData.conversations.length > 0" v-for="conversation in ticketData.conversations">
+              <div class="conv-header">
+                <div><i class="el-icon-view private-note icon"></i></div>
+                <div style="padding: 0 10px;">
+                  <p class="conv-user" v-if="!conversation.incoming">{{getAgentNameFromList(conversation.user_id)}}</p>
+                  <p class="conv-user" v-else>{{conversation.from_email}}</p>
+                  <p v-if="conversation.private && conversation.source == 2">Added a private note<span v-if="conversation.incoming">, Notified to: <b>{{conversation.to_emails.join(",")}}</b></span>
+                  </p>
+                  <p v-if="!conversation.private && conversation.source == 2">Added a Public note</p>
+                  <p v-if="conversation.source == 8">forwarded to <b>{{conversation.to_emails.join(",")}}</b></p>
+                  <p v-if="conversation.source == 0">replied to <b>{{conversation.to_emails.join(",")}}</b></p>
+                  <br />
+                  <p><b>On</b> {{conversation.updated_at | date }}</p>
+                </div>
+              </div>
+              <div class="conv-msg">
+                <p v-html="conversation.body"></p>
+              </div>
+            </div>
+            <div style="padding: 5px 10px;" v-if="ticketData.conversations.length == 0">
+              N/A
+            </div>
           </div>
         </div>
       </div>
@@ -245,7 +253,6 @@
           showLoading() {
             this.loading = this.$loading({
               lock: true,
-              background: 'rgba(0, 0, 0, 0.50)',
               target: this.$refs.ticketContainer
             });
           },
@@ -298,6 +305,7 @@
                 this.agentName = context.data.agentName;
                 this.status = context.data.status;
                 this.agentsList = context.data.agentsList;
+                this.showLoading();
                 this.getTicketDetails();
               } else {
                 this.fdObjectModal.instance.close();
