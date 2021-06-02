@@ -83,6 +83,7 @@
         return app.initialized().then(client => {
           this.fdObject = client;
           this.fdObject.data.get("loggedInUser").then(data => {
+            this.$refs.kanbanContainder.classList.remove('hide')
             this.loggedInUser = data.loggedInUser.id;
             this.getAgentList();
             this.getDataFromModel();

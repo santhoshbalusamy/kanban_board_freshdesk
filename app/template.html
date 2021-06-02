@@ -11,7 +11,7 @@
 <body>
   <div class="fw-widget-wrapper">
     <div id="kabanaId">
-      <div class="container-fluid">
+      <div class="container-fluid hide" ref="kanbanContainder">
         <div class="row">
           <div class="col-md-12">
             <h4>Tickets
@@ -100,7 +100,7 @@
               </div>
             </h4>
           </div>
-          <div class="col-md-12" ref="ticketContainer">
+          <div class="col-md-12" ref="ticketContainer" style="height: 91vh;">
             <div class="flex">
               <div v-for="(value, index) in ticketFields" v-if="value.showInBoard" :key="value.key" class="content">
                 <h5><strong>{{value.key}} ({{tickets[index] ? tickets[index].length: 0}})</strong></h5>

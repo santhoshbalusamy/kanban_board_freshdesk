@@ -225,7 +225,7 @@
                 </h5>
                 <draggable id="invisibleFields" class="dragArea-selected list-group empty-text" :list="hiddenChoice"
                   :group="{name:'SelectedChoice'}" data-placeholder="Drag and Drop from available
-                  fields.">
+                  fields." :move="checkMove">
                   <div class="list-group-item selected-item" v-for="(element,index) in hiddenChoice" :key="element.key"
                     :title="element.key">
                     <div class="dragIcon selected-drag-icon"></div>
