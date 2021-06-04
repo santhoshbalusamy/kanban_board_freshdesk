@@ -151,7 +151,7 @@ var TicketCard = Vue.component('TicketCard', {
         });
         return firstLetter + lastLetter;
       } else {
-        return this.agentName;
+        return '';
       }
     },
 
