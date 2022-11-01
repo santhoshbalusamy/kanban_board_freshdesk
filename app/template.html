@@ -88,14 +88,17 @@
                   </span>
                 </div>
                 <div style="margin-left: 5px; margin-right: 5px;">
-                    <span style="font-size: 10px;">({{totalTicketsPerPage * (currentPage -1)}} -
-                      {{totalTicketsPerPage * currentPage }})</span>
-                  <button class="btn btn-default btn-page" title="Previous" @click="_handlepreviousPage" :disabled="disablePagination || currentPage == 1 ">
-                    <i class="el-icon-arrow-left" style="font-weight: bolder;"></i>
-                  </button>
-                  <button class="btn btn-default btn-page" title="Next" @click="_handleNextPage" :disabled="disablePagination || (hasFilter && currentPage > 10)">
-                    <i class="el-icon-arrow-right" style="font-weight: bolder;"></i>
-                  </button>
+                  <el-tooltip class="item" effect="dark" content="Previous Page" placement="bottom">
+                    <button class="btn btn-default btn-page" @click="_handlepreviousPage" :disabled="disablePagination || currentPage == 1 ">
+                      <i class="el-icon-arrow-left" style="font-weight: bolder;"></i>
+                    </button>
+                  </el-tooltip>
+                  <el-tooltip class="item" effect="dark" content="Next page" placement="bottom">
+                    <button class="btn btn-default btn-page"
+                    @click="_handleNextPage" :disabled="disablePagination || (hasFilter && currentPage > 10)">
+                      <i class="el-icon-arrow-right" style="font-weight: bolder;"></i>
+                    </button>
+                  </el-tooltip>
                 </div>
               </div>
             </h4>
@@ -104,7 +107,7 @@
             <div class="flex">
               <div v-for="(value, index) in ticketFields" v-if="value.showInBoard" :key="value.key" class="content">
                 <h5><strong>{{value.key}} ({{tickets[index] ? tickets[index].length: 0}})</strong></h5>
-                <draggable :list="tickets[index]" class="dragArea" :group="{ name: 'ticketFields'}" :id=" value.value"
+                <draggable :id="value.value" :data-key="value.key" :list="tickets[index]" class="dragArea" :group="{ name: 'ticketFields'}"
                   @add="handleTicketDragEnd" @start="isDragging=true" @end="isDragging=false" :component-data="{ value: index }">
                   <ticket-card v-for="item in tickets[index]" :key="item.id" :subject="item.subject" :description="item.description_text"
                     :agent-name-prop="getAgentNameFromList(item.responder_id)" :agent-id-prop="item.responder_id" :fd-object="fdObject" :ticket-id="item.id"
@@ -122,7 +125,7 @@
               </div>
               <div class="custom-drag-container" :class="{'drag':isDragging}">
                 <draggable class="custom-drag-status cust-drag-status" v-for="(value, index) in ticketFields"
-                  :id=" value.value" v-if="!value.showInBoard" :key="value.key" :group="{ name: 'ticketFields'}"
+                  :id="value.value" v-if="!value.showInBoard" :key="value.key" :group="{ name: 'ticketFields'}"
                   :data-placeholder="_getState(value.key)" @add="handleTicketDragEnd">
                 </draggable>
               </div>

@@ -312,11 +312,11 @@
           },
 
           getFieldValues() {
-            let url = '<%= iparam.$domain.url %>/api/v2/ticket_fields';
-            var headers = {
+            const url = '<%= iparam.$domain.url %>/api/v2/ticket_fields';
+            const headers = {
               "Authorization": "Basic <%= encode(iparam.api_key) %>"
             };
-            var options = {
+            const options = {
               headers: headers
             };
             this.showLoading();
@@ -325,7 +325,10 @@
                 if (data.status == 200) {
                   let response = JSON.parse(data.response);
                   this.dpValues = response.filter((value) => {
-                    return value.type !== 'nested_field' && !!value.choices;
+                    return value.type !== 'nested_field' &&
+                           value.type !== 'default_source' &&
+                           value.type !== 'default_product' &&
+                           !!value.choices;
                   });
                   this.getData().then((data) => {
                     this.selectedTicketField = data.selectedTicketField;
@@ -356,7 +359,7 @@
             if (selected.length > 0) {
               let keyValue = [];
               let selectedChoice = selected[0].choices;
-              for (var key in selectedChoice) {
+              for (let key in selectedChoice) {
                 if (selected[0].type == 'default_status') {
                   keyValue.push({
                     key: selectedChoice[key][0],
@@ -394,9 +397,6 @@
               case 'default_ticket_type':
                 ticketField = 'type';
                 break;
-              case 'default_source':
-                ticketField = 'source';
-                break;
               case 'default_status':
                 ticketField = 'status';
                 break;
@@ -408,9 +408,6 @@
                 break;
               case 'default_agent':
                 ticketField = 'responder_id';
-                break;
-              case 'default_product':
-                ticketField = 'product_id';
                 break;
             }
             return ticketField;

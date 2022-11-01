@@ -6,7 +6,6 @@
     },
     data: {
       currentPage: 1,
-      totalTicketsPerPage: 30,
       disablePagination: false,
       isDragging: false,
       onlyMyIssues: false,
@@ -17,7 +16,7 @@
       statusOptions: [],
       tickets: [],
       ticketBak: [],
-      loading: null,
+      loading: {},
       loggedInUser: null,
       agentsList: [],
       groupsList: [],
@@ -45,7 +44,6 @@
       selectedAgents: [],
       selectedGroups: [],
       selectedPriority: null,
-      path: '',
       defaultFilter: '',
       hasFilter: false,
       searchInput: '',
@@ -97,17 +95,21 @@
         });
       },
 
-      showLoading() {
-        if (this.loading == null || !this.loading.visible)
-          this.loading = this.$loading({
-            lock: true,
-            target: this.$refs.ticketContainer
+      showLoading(containerId) {
+        if (this.loading[containerId] == null || !this.loading[containerId].visible) {
+          this.loading[containerId] = this.$loading({
+            lock: false,
+            fullscreen: false,
+            background: '#c0c0c021',
+            target: document.querySelector(`[data-key="${containerId}"]`),
+            text: 'Loading',
           });
+        }
       },
 
-      closeLoading() {
-        if (this.loading !== null) {
-          this.loading.close();
+      closeLoading(containerId) {
+        if (this.loading[containerId] !== null) {
+          this.loading[containerId].close();
         }
       },
 
@@ -126,36 +128,41 @@
       },
 
       getTicketFieldsOptions() {
-        this.showLoading();
         this.getSelectedTicketFields().then((data) => {
           this.ticketFieldName = data.selectedTicketField;
+
+          // this wil throw to catch block if source/product seleted already in previous versions (for backward compatabality)
+          if (this.ticketFieldName === 'source' || this.ticketFieldName === 'product_id') {
+            throw { status: 404 };
+          }
 
           let selectedChoice = data.selectedChoice.map(elm => {
             elm.showInBoard = true;
             return elm;
           });
+
           let dataHidden = data.hiddenChoice || [];
           let hiddenChoice = dataHidden.map(elm => {
             elm.showInBoard = false;
             return elm;
           });
+
           this.ticketFields = [...selectedChoice, ...hiddenChoice];
 
           if (this.hasFilter) {
             this.handleOnlyMyTickets();
           } else {
-            this.path = 'tickets';
-            this.defaultFilter = `include=description&order_by=created_at&updated_since=2015-01-19`;
+            this.showAllLoading();
             this.getAllTickets();
           }
 
           }).catch(err => {
           if (err.status === 404) {
-            let url = '<%= iparam.$domain.url %>/api/v2/ticket_fields?type=default_status';
-            var headers = {
+            const url = '<%= iparam.$domain.url %>/api/v2/ticket_fields?type=default_status';
+            const headers = {
               "Authorization": "Basic <%= encode(iparam.api_key) %>"
             };
-            var options = {
+            const options = {
               headers: headers
             };
 
@@ -164,7 +171,7 @@
                 if (data.status == 200) {
                   let choice = JSON.parse(data.response)[0].choices;
                   let keyValue = [];
-                  for (var key in choice) {
+                  for (let key in choice) {
                     keyValue.push({
                       key: choice[key][0],
                       value: key.toString(),
@@ -176,8 +183,7 @@
                   if (this.hasFilter) {
                     this.handleOnlyMyTickets();
                   } else {
-                    this.path = 'tickets';
-                    this.defaultFilter = `include=description&order_by=created_at&updated_since=2015-01-19`;
+                    this.showAllLoading();
                     this.getAllTickets();
                   }
                 } else {
@@ -191,60 +197,76 @@
                   this.showNotify({ message: error.response }, 'danger');
                 }
               });
-            } else {
-              console.log(err);
-              if (err.status == 400 || err.status == 404) {
-                this.showNotify({ message: 'Invalid API Key / Domain Name' }, 'danger');
-              } else {
-                this.showNotify({ message: err.response }, 'danger');
-              }
-            }
+          }
+          // else {
+          //     console.log(err);
+          //     if (err.status == 400 || err.status == 404) {
+          //       this.showNotify({ message: 'Invalid API Key / Domain Name' }, 'danger');
+          //     } else {
+          //       this.showNotify({ message: err.response }, 'danger');
+          //     }
+          //   }
         });
       },
 
-      getAllTickets() {
+      showAllLoading() {
+        for (element of this.ticketFields) {
+          if (element.showInBoard) {
+            this.showLoading(element.key);
+          }
+        }
+      },
+
+      async getAllTickets() {
         this.searchInput = '';
-        let pageOptions = this.hasFilter ? `&page=${this.currentPage}` : `&per_page=${this.totalTicketsPerPage}&page=${this.currentPage}`;
-        let url = '<%= iparam.$domain.url %>/api/v2/' + this.path + (this.defaultFilter ? '?' + this.defaultFilter + pageOptions : '');
-        var headers = {
-          "Authorization": "Basic <%= encode(iparam.api_key) %>"
-        };
+        this.tickets = [];
+        const pageOptions = `&page=${this.currentPage}`;
+        const renamedField = this.ticketFieldName === 'responder_id' ? 'agent_id' : this.ticketFieldName;
+        for (element of this.ticketFields) {
+          if (element.showInBoard) {
+            const defaultFilter = this.defaultFilter !== '' ? ` AND ${this.defaultFilter}` : '';
+            // Filter for custom field ad type will be string, so checking and adding the same
+            const isString = this.ticketFieldName.startsWith('cf_') || this.ticketFieldName === 'type';
+            const filter = encodeURI(`query="${renamedField}:${element.value !== 'Unassigned' ? (isString ? `'${element.value}'` : element.value) : null}${defaultFilter}"`);
+            const url = '<%= iparam.$domain.url %>/api/v2/search/tickets?' + filter + pageOptions;
+            const headers = {
+              "Authorization": "Basic <%= encode(iparam.api_key) %>"
+            };
+            const options = {
+              headers: headers
+            };
 
-        var options = {
-          headers: headers
-        };
-        this.fdObject.request.get(url, options)
-        .then(data => {
-          if (data.status == 200) {
-            this.tickets = [];
-            let tickets = JSON.parse(data.response);
-            for (val in this.ticketFields) {
-              this.tickets.push(this.getTickets(tickets.results ? tickets.results : tickets, this.ticketFields[val].value));
-              this.closeLoading();
-              this.disablePagination = false;
-            }
+            await this.fdObject.request.get(url, options)
+              .then(data => {
+                if (data.status == 200) {
+                  const tickets = JSON.parse(data.response);
+                  this.tickets.push(this.getTickets(tickets.results, element.value));
+                  this.closeLoading(element.key);
+                  this.ticketBak = this.tickets;
+                }
+                else {
+                  this.closeLoading(element.key);
+                  throw data;
+                }
+              }).catch(error => {
+                this.closeLoading(element.key);
+                console.log(error);
+                if (error.status == 400 || error.status == 404) {
+                  this.showNotify({ message: 'Invalid API Key / Domain Name' }, 'danger');
+                } else {
+                  this.showNotify({ message: error.response }, 'danger');
+                }
+              });
+          }
 
-            this.ticketBak = this.tickets;
-          } else {
-            this.closeLoading();
-            this.disablePagination = false;
-            throw data;
-          }
-        }).catch(error => {
-          this.closeLoading();
-          console.log(error);
-          if (error.status == 400 || error.status == 404) {
-            this.showNotify({ message: 'Invalid API Key / Domain Name' }, 'danger');
-          } else {
-            this.showNotify({ message: error.response }, 'danger');
-          }
-        });
+          this.disablePagination = false;
+        }
       },
 
       formatDate(date) {
-        var day = date.getDate();
-        var monthIndex = date.getMonth() + 1;
-        var year = date.getFullYear();
+        let day = date.getDate();
+        let monthIndex = date.getMonth() + 1;
+        const year = date.getFullYear();
         if (monthIndex <= 9) {
           monthIndex = '0' + monthIndex;
         }
@@ -255,7 +277,7 @@
       },
 
       getTickets(tickets, value) {
-        var ticketData = tickets.filter((element) => {
+        const ticketData = tickets.filter((element) => {
           let ticket = this.ticketFieldName.startsWith('cf_') ? element.custom_fields : element;
           if (value == 'Unassigned') {
             return ticket[this.ticketFieldName] == null;
@@ -265,6 +287,7 @@
         });
         return ticketData;
       },
+
       handleTicketClicked(ticketId, subject, agentName, status) {
         this.fdObject.interface.trigger("showModal", {
           title: `#${ticketId} - ` + subject,
@@ -280,7 +303,7 @@
 
       getDataFromModel() {
         this.fdObject.instance.receive(event => {
-          var data = event.helper.getData();
+          const data = event.helper.getData();
           if (data.message.fromModel) {
             this.fdObject.interface.trigger("click", {
               id: "ticket",
@@ -296,11 +319,11 @@
       },
 
       getAgentList(currentPage = 1) {
-        let url = `<%= iparam.$domain.url %>/api/v2/agents?per_page=100&page=${currentPage}`;
-        var headers = {
+        const url = `<%= iparam.$domain.url %>/api/v2/agents?per_page=100&page=${currentPage}`;
+        const headers = {
           "Authorization": "Basic <%= encode(iparam.api_key) %>"
         };
-        var options = {
+        const options = {
           headers: headers
         };
         this.fdObject.request.get(url, options)
@@ -342,19 +365,19 @@
       },
 
       getGroupList() {
-        let url = '<%= iparam.$domain.url %>/api/v2/ticket_fields?type=default_group';
-        var headers = {
+        const url = '<%= iparam.$domain.url %>/api/v2/ticket_fields?type=default_group';
+        const headers = {
           "Authorization": "Basic <%= encode(iparam.api_key) %>"
         };
-        var options = {
+        const options = {
           headers: headers
         };
         this.fdObject.request.get(url, options)
           .then(data => {
             if (data.status == 200) {
-              let keyValue = [];
-              let response = JSON.parse(data.response)[0];
-              for (var key in response.choices) {
+              const keyValue = [];
+              const response = JSON.parse(data.response)[0];
+              for (let key in response.choices) {
                 keyValue.push({
                   id: response.choices[key],
                   name: key
@@ -375,11 +398,11 @@
       },
 
       getStatusList() {
-         let url = '<%= iparam.$domain.url %>/api/v2/ticket_fields?type=default_status';
-         var headers = {
+         const url = '<%= iparam.$domain.url %>/api/v2/ticket_fields?type=default_status';
+         const headers = {
            "Authorization": "Basic <%= encode(iparam.api_key) %>"
          };
-         var options = {
+         const options = {
            headers: headers
          };
 
@@ -399,8 +422,8 @@
       },
 
       handleTicketDragEnd(evt) {
-        let id = evt.item._underlying_vm_.id;
-        let status = (this.ticketFieldName.startsWith('cf_') || this.ticketFieldName == 'type') ? evt.target.id : parseInt(evt.target.id);
+        const id = evt.item._underlying_vm_.id;
+        const status = (this.ticketFieldName.startsWith('cf_') || this.ticketFieldName == 'type') ? evt.target.id : parseInt(evt.target.id);
         this.changeTicketFieldStatus(id, status);
       },
 
@@ -413,8 +436,8 @@
       },
 
       changeTicketFieldStatus(id, status) {
-        let url = '<%= iparam.$domain.url %>/api/channel/v2/tickets/' + id;
-        var headers = {
+        const url = '<%= iparam.$domain.url %>/api/channel/v2/tickets/' + id;
+        const headers = {
           "Authorization": "Basic <%= encode(iparam.api_key) %>",
           "content-type": "application/json"
         };
@@ -425,7 +448,7 @@
         } else {
           body[this.ticketFieldName] = status;
         }
-        var options = {
+        const options = {
           headers: headers,
           body: JSON.stringify(body),
         };
@@ -449,8 +472,7 @@
           this.currentPage--;
         }
         this.disablePagination = true;
-        this.showLoading();
-
+        this.showAllLoading();
         this.getAllTickets();
       },
 
@@ -459,18 +481,17 @@
           this.currentPage++;
         }
         this.disablePagination = true;
-        this.showLoading();
+        this.showAllLoading();
         this.getAllTickets();
       },
 
       _handleRefresh() {
         this.currentPage = 1;
-        this.showLoading();
+        this.showAllLoading();
         this.getAllTickets();
       },
 
       _handleRemoveFilters() {
-        this.showLoading();
         this.selectedAgents = [];
         this.selectedGroups = [];
         this.selectedPriority = null;
@@ -482,35 +503,29 @@
       },
 
       handleOnlyMyTickets() {
-        this.showLoading();
         this.onlyMyIssues = true;
         this.buildFilters();
       },
 
       handleAllTickets() {
-        this.showLoading();
         this.onlyMyIssues = false;
         this.buildFilters();
       },
 
       handleRecentlyUpdated() {
         this.recentlyUpdated = !this.recentlyUpdated;
-        this.showLoading();
         this.buildFilters();
       },
 
       _filterSelectedAgents() {
-        this.showLoading();
         this.buildFilters();
       },
 
       _filterSelectedGroups() {
-        this.showLoading();
         this.buildFilters();
       },
 
       _filterSelectedPriority() {
-        this.showLoading();
         this.buildFilters();
       },
 
@@ -549,18 +564,16 @@
           let date = new Date();
           queryParams.push(`updated_at:'${this.formatDate(date)}'`);
         }
-
+        this.showAllLoading();
         if (queryParams.length > 0) {
           this.hasFilter = true;
           this.currentPage = 1;
-          this.path = 'search/tickets';
-          this.defaultFilter = `query="${queryParams.join(' AND ')}"`;
+          this.defaultFilter = queryParams.join(' AND ');
           this.getAllTickets();
         } else {
           this.hasFilter = false;
           this.currentPage = 1;
-          this.path = 'tickets';
-          this.defaultFilter = `include=description&order_by=created_at&updated_since=2015-01-19`;
+          this.defaultFilter = ''
           this.getAllTickets();
         }
       }

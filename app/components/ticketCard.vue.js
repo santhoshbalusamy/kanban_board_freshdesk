@@ -259,11 +259,11 @@ var TicketCard = Vue.component('TicketCard', {
 
     getAgentName() {
       if (this.agentId !== '' && this.agentId !== null) {
-        let url = '<%= iparam.$domain.url %>/api/v2/agents/' + this.agentId;
-        var headers = {
+        const url = '<%= iparam.$domain.url %>/api/v2/agents/' + this.agentId;
+        const headers = {
           "Authorization": "Basic <%= encode(iparam.api_key) %>"
         };
-        var options = {
+        const options = {
           headers: headers
         };
         this.fdObject.request.get(url, options)
@@ -284,12 +284,12 @@ var TicketCard = Vue.component('TicketCard', {
 
     setQuickActions(isAssignedTOMe) {
       this.popupVisible = false;
-      let url = '<%= iparam.$domain.url %>/api/channel/v2/tickets/' + this.ticketId;
-      var headers = {
+      const url = '<%= iparam.$domain.url %>/api/channel/v2/tickets/' + this.ticketId;
+      const headers = {
         "Authorization": "Basic <%= encode(iparam.api_key) %>",
         "Content-Type": "application/json"
       };
-      var options = {
+      const options = {
         headers,
         body: {
           status: Number(this.status),
