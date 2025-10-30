@@ -1,5 +1,5 @@
 {
-  "platform-version": "2.2",
+  "platform-version": "2.3",
   "product": {
     "freshdesk": {
       "location": {
@@ -10,11 +10,8 @@
       }
     }
   },
-  "whitelisted-domains": [
-    "https://*.freshdesk.com"
-  ],
   "engines": {
-    "node": "14.20.0",
-    "fdk": "8.6.5"
+    "node": "18.12.1",
+    "fdk": "9.1.1"
   }
 }

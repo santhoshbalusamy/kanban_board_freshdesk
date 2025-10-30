@@ -127,6 +127,7 @@
         return this.fdObject.db.get("ticket-fields-" + this.loggedInUser);
       },
 
+      // TODO: we need to store the filters and get the filters and show it here.
       getTicketFieldsOptions() {
         this.getSelectedTicketFields().then((data) => {
           this.ticketFieldName = data.selectedTicketField;
